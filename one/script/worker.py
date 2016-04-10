@@ -2,7 +2,7 @@ import bs4
 import urllib3
 
 
-START_PAGE_NUM = 1302
+START_PAGE_NUM = 1300
 MAX_PAGE_NUM = 1302
 
 http = urllib3.PoolManager()
