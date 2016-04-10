@@ -1,7 +1,6 @@
-import re, os
+import os
 from bs4 import BeautifulSoup
 import requests
-import random
 import hashlib
 
 
@@ -11,28 +10,61 @@ def get_exist_names():
     return exist
 
 
-def miner():
-    user_id = '2663489000'
-    cookie = {"Cookie": "_T_WM=e1eadf753daa8e0eaa6a98dbd924dd89; SUB=_2A256DbneDeRxGedJ6FsV9CjLzjiIHXVZ8ceWrDV6PUJbrdBeLVP8kW1LHeuE-tglgN4hADdeZV_zCKufEX1tGA..; SUHB=0WGdcIcQ6fIJa7; SSOLoginState=1460259214"}
-    exists = get_exist_names()
+exists = get_exist_names()
+user_id = '2663489000'
+cookie_values1 = ['_T_WM=e1eadf753daa8e0eaa6a98dbd924dd89;', ' SUB=_2A256DbneDeRxGedJ6FsV9CjLzjiIHXVZ8ceWrDV6PUJb']
+cookie_values2 = ['rdBeLVP8kW1LHeuE-tglgN4hADdeZV_zCKufEX1tGA..;', ' SUHB=0WGdcIcQ6fIJa7; SSOLoginState=1460259214']
+cookie = {"Cookie": ''.join(cookie_values1) + ''.join(cookie_values2)}
 
-    page_num = 1
+
+def miner():
+    page_num = 2
     for page in range(1, page_num + 1):
         url = 'http://weibo.cn/u/%s?filter=1&page=%d' % (user_id, page)
         content = requests.get(url, cookies = cookie).content
-
         soup = BeautifulSoup(content, "html.parser")
-        urls = soup.find_all('a', href=re.compile(r'^http://weibo.cn/mblog/oripic', re.I))
-        for img_url in urls:
-            image_src = requests.get(img_url['href'], cookies = cookie)
+        download_one_page(soup)
 
-            # use hash value as the image name to avoid duplicate downloading
-            name = get_img_name(image_src.content)
-            if name not in exists:
-                with open('./downloads/%s.jpg' % name, 'wb') as jpg:
-                    jpg.write(image_src.content)
-                    print('downloading...')
+        # more pic link, load and download again
+        img_links = soup.find_all('a')
+        for link in img_links:
+            src = link['href']
+            if 'picAll' in src:
+                content_sub = requests.get(src, cookies = cookie).content
+                soup_sub = BeautifulSoup(content_sub, "html.parser")
+                download_one_page(soup_sub)
+
         print('done.')
+
+
+def download_one_page(soup):
+    '''
+    download all pictures on the website
+    :param soup: web page soup
+    :return: None
+    '''
+    img_urls = soup.find_all('img')
+    for img_tag in img_urls:
+        img_url = img_tag['src']
+        if not img_url.endswith('.jpg'):
+            continue
+
+        # remove http:// in head
+        img_url = img_url[7:]
+        url_subs = img_url.split("/")
+        if len(url_subs) != 3:
+            continue
+        url_subs[1] = 'mw690'
+        final_url = 'http://' + '/'.join(url_subs)
+
+        image_src = requests.get(final_url, cookies = cookie)
+        # use hash value as the image name to avoid duplicate downloading
+        name = get_img_name(image_src.content)
+        if name not in exists:
+            with open('./downloads/%s.jpg' % name, 'wb') as jpg:
+                jpg.write(image_src.content)
+                exists.append(name)
+                print('downloading...')
 
 
 def get_img_name(content):
