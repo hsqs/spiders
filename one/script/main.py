@@ -3,7 +3,7 @@ import bs4
 import urllib3
 
 
-START_PAGE_NUM = 14
+START_PAGE_NUM = 1302
 MAX_PAGE_NUM = 1302
 
 http = urllib3.PoolManager()
@@ -30,6 +30,7 @@ def get_soup():
                     with open('../downloads/{}.jpg'.format(contents), 'wb') as jpg:
                         jpg.write(img_request.data)
                         print("{}:{}".format(page_url, 'done'))
+                        break
             # if div not contains a key attr, continue
             except KeyError:
                 continue
