@@ -1,7 +1,8 @@
 import os
+import re
 from bs4 import BeautifulSoup
 import requests
-import hashlib
+import datetime
 
 
 def get_exist_names():
@@ -11,7 +12,7 @@ def get_exist_names():
 
 
 exists = get_exist_names()
-users = {1303132300: 2, 2663489000: 4, 5021784365: 3}
+users = {1303132300: 1, 2663489000: 1, 5021784365: 1}
 cookie_values1 = ['_T_WM=e1eadf753daa8e0eaa6a98dbd924dd89;', ' SUB=_2A256DbneDeRxGedJ6FsV9CjLzjiIHXVZ8ceWrDV6PUJb']
 cookie_values2 = ['rdBeLVP8kW1LHeuE-tglgN4hADdeZV_zCKufEX1tGA..;', ' SUHB=0WGdcIcQ6fIJa7; SSOLoginState=1460259']
 cookie = {"Cookie": ''.join(cookie_values1) + ''.join(cookie_values2)}
@@ -29,15 +30,7 @@ def miner():
             soup = BeautifulSoup(content, "html.parser")
             download_one_page(soup, user_id)
 
-            # more pic link, load and download again
-            img_links = soup.find_all('a')
-            for link in img_links:
-                src = link['href']
-                if 'picAll' in src:
-                    content_sub = requests.get(src, cookies = cookie).content
-                    soup_sub = BeautifulSoup(content_sub, "html.parser")
-                    download_one_page(soup_sub, user_id)
-            print('done.')
+        print('done.')
 
 
 def download_one_page(soup, user_id):
@@ -47,40 +40,81 @@ def download_one_page(soup, user_id):
     :param user_id: the weibo user id
     :return: None
     '''
-    img_urls = soup.find_all('img')
-    for img_tag in img_urls:
-        img_url = img_tag['src']
-        if not img_url.endswith('.jpg'):
-            continue
 
-        # remove http:// in head
-        img_url = img_url[7:]
-        url_subs = img_url.split("/")
-        if len(url_subs) != 3:
-            continue
-        url_subs[1] = 'mw690'
-        final_url = 'http://' + '/'.join(url_subs)
+    div_c = [div for div in soup.find_all('div') if div.get('class', 'null') == ['c']]
+    divs = [div for div in div_c if div.get('id') is not None]
 
-        image_src = requests.get(final_url, cookies = cookie)
-        # use hash value as the image name to avoid duplicate downloading
-        name = get_img_name(image_src.content)
-        if name not in exists:
-            with open('./downloads/{}/{}.jpg'.format(user_id, name), 'wb') as jpg:
-                jpg.write(image_src.content)
-                exists.append(name)
-                print('downloading...')
-        print('one page downloaded.')
+    for div in divs:
+        spans = div.find_all('span')
+
+        wb_post_time = get_weibo_post_time(spans[1].text)
+
+        all_img = div.find_all('img')
+        img_link = filter(lambda x: x.endswith('.jpg'), [all_img[0].get('src')] if all_img else [])
+
+        more_links = [link['href'] for link in div.find_all('a') if link.get('href') is not None]
+        more_links_real = [x for x in more_links if 'picAll' in x]
+        if more_links_real:
+            more_content = requests.get(more_links_real[0], cookies = cookie)
+            more_soup = BeautifulSoup(more_content.content, 'html.parser')
+            more_soup_urls = get_more_page_image_url(more_soup)
+            img_link = more_soup_urls if more_soup_urls else img_link
+
+        for idx, link in enumerate(img_link):
+            image_name = wb_post_time + ':' + str(idx)
+            if image_name not in exists:
+                large_link = replace_part2_in_link(link)
+                image_content = requests.get(large_link, cookies = cookie)
+                with open('./downloads/{}/{}.jpg'.format(user_id, image_name), 'wb') as jpg:
+                    jpg.write(image_content.content)
+
+                    exists.append(image_name)
+                    print('download ', large_link, image_name)
+            else:
+                print('jump over:', image_name)
 
 
-def get_img_name(content):
-    '''
-    return the hash value of the content
-    :param content: image binary content
-    :return: hashed value
-    '''
-    md5obj = hashlib.md5()
-    md5obj.update(content)
-    return md5obj.hexdigest()
+def get_more_page_image_url(soup):
+    all_img = soup.find_all('img')
+    all_img_link = (x.get('src') for x in all_img)
+    return [x for x in all_img_link if x.endswith('jpg')]
+
+
+def replace_part2_in_link(link):
+    link = link[7:]
+    all_parts = link.split('/')
+    all_parts[1] = 'mw690'
+    return 'http://' + '/'.join(all_parts)
+
+_h_M = re.compile('\d{2}:\d{2}')
+_y_m_d_H_M_S = re.compile('(\d{4})\-(\d{2})\-(\d{2}) (\d{2}):(\d{2}):(\d{2})')
+_2_num = re.compile('(\d{2})')
+
+
+def get_weibo_post_time(wb_time):
+
+    if '今天' in wb_time:
+        hhmm = _h_M.findall(wb_time)[0].split(':')
+        hour, minute = int(hhmm[0]), int(hhmm[-1])
+        today = datetime.datetime.now().replace(hour = hour, minute = minute)
+        return today.strftime('%Y-%m-%d-%H-%M-%S')
+
+    elif wb_time.count('-') == 2:
+        y_2_s = _y_m_d_H_M_S.findall(wb_time)[0]
+        return '-'.join(y_2_s)
+
+    elif '分钟前' in wb_time:
+        m_before = int(_2_num.findall(wb_time)[0])
+        m_now = datetime.datetime.now() - datetime.timedelta(minutes = m_before)
+        return m_now.strftime('%Y-%m-%d-%H-%M-%S')
+
+    else:
+        year = datetime.datetime.today().year
+        ret = _2_num.findall(wb_time)
+        ret.insert(0, year)
+        ret.append('00')
+        ret = map(lambda x: str(x), ret)
+        return '-'.join(ret)
 
 
 if __name__ == '__main__':
