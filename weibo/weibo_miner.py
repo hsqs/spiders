@@ -12,7 +12,7 @@ def get_exist_names():
 
 
 exists = get_exist_names()
-users = {1303132300: 1, 2663489000: 1, 5021784365: 1}
+users = {1303132300: 10, 2663489000: 10, 5021784365: 10}
 cookie_values1 = ['_T_WM=e1eadf753daa8e0eaa6a98dbd924dd89;', ' SUB=_2A256DbneDeRxGedJ6FsV9CjLzjiIHXVZ8ceWrDV6PUJb']
 cookie_values2 = ['rdBeLVP8kW1LHeuE-tglgN4hADdeZV_zCKufEX1tGA..;', ' SUHB=0WGdcIcQ6fIJa7; SSOLoginState=1460259']
 cookie = {"Cookie": ''.join(cookie_values1) + ''.join(cookie_values2)}
@@ -61,7 +61,7 @@ def download_one_page(soup, user_id):
             img_link = more_soup_urls if more_soup_urls else img_link
 
         for idx, link in enumerate(img_link):
-            image_name = wb_post_time + ':' + str(idx)
+            image_name = wb_post_time + '>' + str(idx)
             if image_name not in exists:
                 large_link = replace_part2_in_link(link)
                 image_content = requests.get(large_link, cookies = cookie)
@@ -83,7 +83,7 @@ def get_more_page_image_url(soup):
 def replace_part2_in_link(link):
     link = link[7:]
     all_parts = link.split('/')
-    all_parts[1] = 'mw690'
+    all_parts[1] = 'large'
     return 'http://' + '/'.join(all_parts)
 
 _h_M = re.compile('\d{2}:\d{2}')
@@ -97,7 +97,7 @@ def get_weibo_post_time(wb_time):
         hhmm = _h_M.findall(wb_time)[0].split(':')
         hour, minute = int(hhmm[0]), int(hhmm[-1])
         today = datetime.datetime.now().replace(hour = hour, minute = minute)
-        return today.strftime('%Y-%m-%d-%H-%M-%S')
+        return today.strftime('%Y-%m-%d-%H-%M-xx')
 
     elif wb_time.count('-') == 2:
         y_2_s = _y_m_d_H_M_S.findall(wb_time)[0]
