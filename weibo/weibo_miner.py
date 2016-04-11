@@ -69,7 +69,7 @@ def download_one_page(soup, user_id):
                     jpg.write(image_content.content)
 
                     exists.append(image_name)
-                    print('download ', large_link, image_name)
+                    print('download', large_link, image_name, datetime.datetime.now())
             else:
                 print('jump over:', image_name)
 
