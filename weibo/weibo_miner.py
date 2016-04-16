@@ -3,6 +3,7 @@ import re
 from bs4 import BeautifulSoup
 import requests
 import datetime
+import hashlib
 
 
 def get_exist_names():
@@ -10,9 +11,11 @@ def get_exist_names():
     返回已存在的图片名字
     :return: 图片名字
     '''
-    walked = list(os.walk("./downloads"))[0]
-    exist = [x for x in walked[2] if str(x).endswith('.jpg')]
-    return exist
+    for parent, dirnames, filenames in os.walk('./downloads'):
+        for dirname in dirnames:
+            exist_names = os.listdir(os.path.join(parent, dirname))
+            md5s = [x.split('_')[1][:-4] for x in exist_names if '_' in x]
+            return md5s
 
 
 def get_cookie():
@@ -25,11 +28,12 @@ def get_cookie():
     return {"Cookie": ''.join(cookie_values1) + ''.join(cookie_values2)}
 
 
-exists = get_exist_names()
 cookie = get_cookie()
 
 
 def miner(users):
+    exists = get_exist_names()
+
     for user_id, page_num in users.items():
         path_img = 'downloads/{}'.format(user_id)
         if not os.path.exists(path_img):
@@ -39,7 +43,7 @@ def miner(users):
             url = 'http://weibo.cn/u/%s?filter=1&page=%d' % (user_id, page)
             content = requests.get(url, cookies = cookie, headers = get_header()).content
             soup = BeautifulSoup(content, "html.parser")
-            download_one_page(soup, user_id)
+            download_one_page(soup, user_id, exists)
 
         print('done.')
 
@@ -55,11 +59,12 @@ def get_header():
     return header
 
 
-def download_one_page(soup, user_id):
+def download_one_page(soup, user_id, exists):
     '''
     download all pictures on the website
     :param soup: web page soup
     :param user_id: the weibo user id
+    :param exists exists pic names
     :return: None
     '''
 
@@ -86,8 +91,9 @@ def download_one_page(soup, user_id):
 
         # download
         for idx, link in enumerate(img_link):
-            image_name = wb_post_time + '>' + str(idx)
-            if image_name not in exists:
+            md5 = calculate_md5(link)
+            image_name = "{}>{}_{}".format(wb_post_time, str(idx), md5)
+            if md5 not in exists:
                 large_link = replace_part2_in_link(link)
                 image_content = requests.get(large_link, cookies = cookie)
                 with open('./downloads/{}/{}.jpg'.format(user_id, image_name), 'wb') as jpg:
@@ -97,6 +103,10 @@ def download_one_page(soup, user_id):
                     print('download', large_link, image_name, datetime.datetime.now())
             else:
                 print('jump over:', image_name)
+
+
+def calculate_md5(url):
+    return hashlib.md5(url.encode('utf-8')).hexdigest()
 
 
 def get_more_page_image_url(soup):
@@ -158,4 +168,8 @@ def get_weibo_post_time(wb_time):
 
 
 if __name__ == '__main__':
-    miner()
+    target = {
+        # user_id : page_num
+        2663489000: 30
+    }
+    miner(target)
