@@ -1,3 +1,3 @@
 # some notes about ...
 
-### These pictures in the folder, which are downloaded by this spider from a weibo user, are picked up from my downloadings. :)
+### These pictures in the folder, which are downloaded by this spider from a weibo user, are picked up from my downloadings. ;-)
