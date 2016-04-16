@@ -134,6 +134,7 @@ def replace_part2_in_link(link):
 _h_M = re.compile('\d{2}:\d{2}')
 _y_m_d_H_M_S = re.compile('(\d{4})\-(\d{2})\-(\d{2}) (\d{2}):(\d{2}):(\d{2})')
 _2_num = re.compile('(\d{2})')
+_nums = re.compile('(\d+)')
 
 
 def get_weibo_post_time(wb_time):
@@ -154,7 +155,7 @@ def get_weibo_post_time(wb_time):
         return '-'.join(y_2_s)
 
     elif '分钟前' in wb_time:
-        m_before = int(_2_num.findall(wb_time)[0])
+        m_before = int(_nums.findall(wb_time)[0])
         m_now = datetime.datetime.now() - datetime.timedelta(minutes = m_before)
         return m_now.strftime('%Y-%m-%d-%H-%M-%S')
 
