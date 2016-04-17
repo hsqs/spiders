@@ -5,6 +5,7 @@ import requests
 import datetime
 import hashlib
 import random
+import time
 
 
 def get_exist_names(user_id):
@@ -30,7 +31,7 @@ def get_cookie():
     cookie_values1 = ['_T_WM=e1eadf753daa8e0eaa6a98dbd924dd89;', ' SUB=_2A256DbneDeRxGedJ6FsV9CjLzjiIHXVZ8ceWrDV6PUJb']
     cookie_values2 = ['rdBeLVP8kW1LHeuE-tglgN4hADdeZV_zCKufEX1tGA..;', ' SUHB=0WGdcIcQ6fIJa7; SSOLoginState=1460259']
 
-    cookie = ''.join(cookie_values1) + ''.join(cookie_values2) + str(random.randint(0, 10))
+    cookie = ''.join(cookie_values1) + ''.join(cookie_values2) + str(random.randint(0, 50))
     return {"Cookie": cookie}
 
 
@@ -45,7 +46,8 @@ def miner(users):
                 os.makedirs(path_img)
 
             if page_num <= 0:
-                page_num = 9999999
+                print(user_id, 'has error page num', page_num, 'it must be positive')
+                continue
 
             for page in range(1, page_num + 1):
                 url = 'http://weibo.cn/u/%s?filter=1&page=%d' % (user_id, page)
@@ -126,9 +128,13 @@ def download_one_page(soup, user_id, exists):
 
                     exists.append(image_name)
                     print('download', large_link, image_name, datetime.datetime.now())
+                    time.sleep(random.random())
             else:
                 print('jump over:', link)
 
+    sleep = 8 * random.random()
+    print('sleep', sleep, 'seconds')
+    time.sleep(sleep)
     return True
 
 
@@ -198,7 +204,7 @@ def get_weibo_post_time(wb_time):
 if __name__ == '__main__':
     target = {
         # user_id : page_num
-        # 2663489000: 30
-        2811699412: 7
+        2663489000: 80
+        # 2811699412: 7
     }
     miner(target)
