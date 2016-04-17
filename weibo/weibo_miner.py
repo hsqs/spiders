@@ -20,7 +20,7 @@ def get_exist_names(user_id):
                 exist_names = os.listdir(os.path.join(parent, dirname))
                 md5s_jpg = (x.split('_')[1] for x in exist_names if '_' in x)
                 md5s = [x[:-4] for x in md5s_jpg]
-                return md5s
+                return set(md5s)
 
 
 def get_cookie():
@@ -126,7 +126,7 @@ def download_one_page(soup, user_id, exists):
                 with open('./downloads/{}/{}.jpg'.format(user_id, image_name), 'wb') as jpg:
                     jpg.write(image_content.content)
 
-                    exists.append(image_name)
+                    exists.add(image_name)
                     print('download', large_link, image_name, datetime.datetime.now())
                     time.sleep(random.random())
             else:
@@ -204,7 +204,7 @@ def get_weibo_post_time(wb_time):
 if __name__ == '__main__':
     target = {
         # user_id : page_num
-        2663489000: 80
+        2663489000: 1
         # 2811699412: 7
     }
     miner(target)
