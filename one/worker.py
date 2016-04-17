@@ -3,7 +3,7 @@ import urllib3
 
 
 START_PAGE_NUM = 1300
-MAX_PAGE_NUM = 1302
+MAX_PAGE_NUM = 1309
 
 http = urllib3.PoolManager()
 
@@ -25,7 +25,7 @@ def spider():
 
                     img_url = soup.find_all("img")[1]['src']
                     img_request = http.request("GET", img_url)
-                    with open('../downloads/{}.jpg'.format(contents), 'wb') as jpg:
+                    with open('./downloads/{}.jpg'.format(contents), 'wb') as jpg:
                         jpg.write(img_request.data)
                         print("{}:{}".format(index, 'done'))
                         break
